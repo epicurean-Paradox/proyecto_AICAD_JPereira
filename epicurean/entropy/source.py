@@ -1,88 +1,81 @@
-import subprocess
+import cv2
 import hashlib
-from typing import List, Tuple, Optional
+import numpy as np
+from typing import List, Optional
 
-def _run_command(command: List[str]) -> Tuple[bool, str]:
+from epicurean.auditing.logger import get_logger
+
+logger = get_logger(__name__)
+
+def list_available_cameras() -> List[int]:
     """
-    Executes a shell command and captures its output.
-
-    Args:
-        command: The command to execute as a list of strings.
+    Detects and lists available camera devices.
 
     Returns:
-        A tuple containing a success boolean and the command's stdout or stderr.
+        A list of integer indices for available cameras.
     """
-    try:
-        result = subprocess.run(
-            command,
-            capture_output=True,
-            text=True,
-            check=True
-        )
-        return True, result.stdout.strip()
-    except FileNotFoundError:
-        return False, f"Error: The command '{command[0]}' was not found. Please ensure it is installed and in your PATH."
-    except subprocess.CalledProcessError as e:
-        return False, f"Error executing command: {e}\n{e.stderr.strip()}"
-
-def list_available_cameras() -> List[str]:
-    """
-    Lists all video devices available to imagesnap.
-
-    Returns:
-        A list of available camera names.
-        Returns an empty list if imagesnap is not found or fails.
-    """
-    success, output = _run_command(["imagesnap", "-l"])
-    if not success:
-        # In a CLI app, printing to stderr is better, but for now, this is fine.
-        print(output)
-        return []
+    logger.info("Detecting available video cameras.")
+    available_indices = []
+    index = 0
+    # Check for up to 10 camera indices.
+    while index < 10:
+        cap = cv2.VideoCapture(index)
+        if cap.isOpened():
+            available_indices.append(index)
+            cap.release()
+        index += 1
     
-    lines = output.split('\n')
-    # The first line can be "Video Devices:", we clean it up.
-    # Also handle the case where a device name might have leading/trailing spaces.
-    camera_lines = lines[1:] if lines and "Video Devices:" in lines[0] else lines
-    return [line.strip() for line in camera_lines if line.strip()]
-
-def capture_frame(camera_name: str, output_path: str = "snapshot.jpg") -> Optional[str]:
-    """
-    Captures a single frame from the specified camera.
-
-    Args:
-        camera_name: The name of the camera to use.
-        output_path: The path to save the captured image file.
-
-    Returns:
-        The path to the captured image if successful, otherwise None.
-    """
-    print(f"Attempting to capture a frame from '{camera_name}'...")
-    print("Your OS may request permission to access the camera.")
-    
-    success, output = _run_command(["imagesnap", "-d", camera_name, output_path])
-    
-    if success:
-        print(f"Successfully saved frame to '{output_path}'")
-        return output_path
+    if not available_indices:
+        logger.warning("No video cameras detected.")
     else:
-        print(output)
-        return None
+        logger.info(f"Found cameras at indices: {available_indices}")
+        
+    return available_indices
 
-def generate_seed_from_image(image_path: str) -> Optional[str]:
+def capture_snapshot(camera_index: int) -> Optional[np.ndarray]:
     """
-    Generates a SHA-256 hash from an image file.
+    Captures a single frame from a specified camera.
 
     Args:
-        image_path: The path to the image file.
+        camera_index: The index of the camera to use.
 
     Returns:
-        The hex digest of the SHA-256 hash, or None if the file cannot be read.
+        A NumPy array representing the captured image, or None if capture fails.
     """
-    try:
-        with open(image_path, "rb") as f:
-            image_bytes = f.read()
-            sha256_hash = hashlib.sha256(image_bytes).hexdigest()
-            return sha256_hash
-    except IOError as e:
-        print(f"Error reading image file '{image_path}': {e}")
+    logger.info(f"Attempting to capture snapshot from camera {camera_index}.")
+    cap = cv2.VideoCapture(camera_index)
+    
+    if not cap.isOpened():
+        logger.error(f"Cannot open camera at index {camera_index}.")
+        cap.release()
         return None
+        
+    ret, frame = cap.read()
+    cap.release()
+    
+    if not ret:
+        logger.error(f"Failed to read frame from camera {camera_index}.")
+        return None
+        
+    logger.info(f"Successfully captured snapshot from camera {camera_index}.")
+    return frame
+
+def get_entropy_from_image(image: np.ndarray) -> str:
+    """
+    Generates a SHA-256 hash from the raw image data for use as an entropy seed.
+
+    Args:
+        image: A NumPy array representing the image.
+
+    Returns:
+        A hexadecimal string of the SHA-256 hash.
+    """
+    logger.debug("Generating entropy seed from image data.")
+    image_bytes = image.tobytes()
+    
+    hasher = hashlib.sha256()
+    hasher.update(image_bytes)
+    hex_digest = hasher.hexdigest()
+    
+    logger.info(f"Generated entropy seed: {hex_digest[:16]}...")
+    return hex_digest

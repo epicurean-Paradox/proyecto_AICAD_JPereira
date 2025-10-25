@@ -1,1 +1,3 @@
 pefile
+opencv-python-headless
+stegano

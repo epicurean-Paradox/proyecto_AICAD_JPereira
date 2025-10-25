@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+.venv/
+
+# Project Output
+output/
+snapshot.png
+final_image_with_logs.png
+putty_mutated.exe
+
+# IDE / Editor specific
+.vscode/
+.idea/
+
+# OS specific
+.DS_Store
+
+# Project Files
+STYLE_GUIDE.md

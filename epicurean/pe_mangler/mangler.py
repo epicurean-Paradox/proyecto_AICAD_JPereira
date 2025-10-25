@@ -51,9 +51,28 @@ class PEMangler:
         info.append("--------------------------------------")
         return "\n".join(info)
 
-    def apply_nops_mutation(self, seed: str) -> bool:
+    def apply_nops_mutation(self, seed: str, section_name: str = ".gemini") -> bool:
         """
         Applies the NOP insertion mutation to the loaded PE file.
+
+        Args:
+            seed: The seed for deterministic random operations.
+            section_name: The name for the new section.
+
+        Returns:
+            True if mutation was successful, False otherwise.
+        """
+        if not self.pe:
+            print("Error: Cannot apply mutation, no PE file loaded.")
+            return False
+        
+        print(f"\n--- Applying NOP Insertion Mutation (section: {section_name}) ---")
+        from .mutations import add_nop_section
+        return add_nop_section(self.pe, seed, section_name=section_name)
+
+    def apply_section_rename_mutation(self, seed: str) -> bool:
+        """
+        Applies the section rename mutation to the loaded PE file.
 
         Args:
             seed: The seed for deterministic random operations.
@@ -64,10 +83,10 @@ class PEMangler:
         if not self.pe:
             print("Error: Cannot apply mutation, no PE file loaded.")
             return False
-        
-        print("\n--- Applying NOP Insertion Mutation ---")
-        from .mutations import add_nop_section
-        return add_nop_section(self.pe, seed)
+
+        print("\n--- Applying Section Rename Mutation ---")
+        from .mutations import rename_random_section
+        return rename_random_section(self.pe, seed)
 
     def save_mutated_file(self, output_path: str) -> bool:
         """
