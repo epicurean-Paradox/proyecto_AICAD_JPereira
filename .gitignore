@@ -12,6 +12,7 @@ output/
 snapshot.png
 final_image_with_logs.png
 putty_mutated.exe
+putty_mutated.exe
 
 # IDE / Editor specific
 .vscode/

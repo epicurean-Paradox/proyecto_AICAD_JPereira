@@ -4,13 +4,13 @@ import logging
 import io
 import cv2
 import random
-from epicurean.auditing.logger import get_logger
-from epicurean.entropy.source import (
+from proyecto_aicad_jpereira.auditing.logger import get_logger
+from proyecto_aicad_jpereira.entropy.source import (
     list_available_cameras,
     capture_snapshot,
     get_entropy_from_image,
 )
-from epicurean.pe_mangler.mangler import PEMangler
+from proyecto_aicad_jpereira.pe_mangler.mangler import PEMangler
 
 # Configure logger
 logger = get_logger(__name__)
@@ -123,7 +123,7 @@ def main():
                     logger.info(f"Attempt {attempt + 1}: Applied mutations: {', '.join(mutations_applied)}")
 
                     # --- Early Warning Evaluation ---
-                    from epicurean.monitoring.early_warning import is_still_valid, is_detected
+                    from proyecto_aicad_jpereira.monitoring.early_warning import is_still_valid, is_detected
                     is_valid = is_still_valid(mangler.pe)
                     # We will now only consider ".gemini" as a suspicious name for the test
                     detected = is_detected(mangler.pe, suspicious_names=[".gemini"])
@@ -135,7 +135,7 @@ def main():
 
                         # --- Steganography Step ---
                         logger.info("--- Starting Steganography Step ---")
-                        from epicurean.auditing.steganography import hide_log_in_image
+                        from proyecto_aicad_jpereira.auditing.steganography import hide_log_in_image
                         log_contents = log_stream.getvalue()
                         output_image_path = os.path.join(output_dir, "final_image_with_logs.png")
                         hide_log_in_image(snapshot_path, output_image_path, log_contents)

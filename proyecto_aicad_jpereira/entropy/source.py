@@ -3,7 +3,7 @@ import hashlib
 import numpy as np
 from typing import List, Optional
 
-from epicurean.auditing.logger import get_logger
+from proyecto_aicad_jpereira.auditing.logger import get_logger
 
 logger = get_logger(__name__)
 
