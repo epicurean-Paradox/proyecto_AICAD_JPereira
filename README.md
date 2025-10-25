@@ -2,58 +2,74 @@
 
 This is a practical project as an exercise for the Official Master's Degree in Compliance, Cybersecurity, and Risk Management from AICAD Unimarconi.
 
-Este proyecto es una herramienta de línea de comandos para generar ejecutables adversariales a partir de archivos PE (Portable Executable) de Windows. Utiliza una fuente de entropía del mundo real (una cámara de vídeo) para dirigir una serie de mutaciones en un archivo PE de entrada, con el objetivo de evadir la detección por software de seguridad mientras se mantiene la funcionalidad del archivo.
+This project is a command-line tool to generate adversarial executables from Windows Portable Executable (PE) files. It uses a real-world entropy source (a video camera) to drive a series of mutations on an input PE file, aiming to evade detection by security software while maintaining the file's functionality.
 
-## Arquitectura
+## Architecture and Workflow
 
-El flujo del proceso es el siguiente:
+The core of the system is a feedback loop that attempts to create a mutated executable that is both functional and stealthy.
 
-1.  **Fuente de Entropía**: Se captura un fotograma de una cámara de vídeo seleccionada por el usuario.
-2.  **Generación de Semilla**: Se genera un hash SHA-256 a partir de los datos brutos de la imagen. Esta es la semilla maestra.
-3.  **Bucle de Mutación y Evaluación**:
-    a. Se intenta una serie de mutaciones (p. ej., renombrar secciones, añadir código) en el archivo PE, utilizando una semilla derivada de la semilla maestra.
-    b. **Evaluación de Alerta Temprana**: El archivo mutado se comprueba para verificar su integridad estructural y se escanea con un detector de firmas simple.
-    c. **Decisión**: Si el archivo es válido y no es detectado, el bucle termina con éxito. Si no, los cambios se descartan y se inicia un nuevo intento con una semilla modificada.
-4.  **Salida y Auditoría**:
-    a. El archivo PE mutado y exitoso se guarda en la carpeta `output/`.
-    b. El log completo de la sesión se oculta en el fotograma capturado y se guarda como una imagen PNG en la carpeta `output/`.
+```mermaid
+flowchart TD
+    A["Capture Frame (Webcam)"] --> B["Generate Hash from Frame"]
+    B --> C["Get Random Seed"]
+    C --> D["Semantic/Structural PE Mutations"]
+    D --> E["Functional & Evasion Evaluation"]
+    E --> K["Early Warning Check"]
+    E --> F{"Evades Detection & is Functional?"}
+    F -- "Yes" --> G["Log Adversarial Pipeline (Logs, Alerts)"]
+    F -- "No" --> D
+    G --> H["Steganography on Original Frame"]
+    H --> I["Adversarial PE File Ready"]
+    G -->|Audit| J["Forensic/Metric Review"]
+```
 
-## Instalación
+**Workflow Steps:**
 
-1.  Asegúrate de tener Python 3.10 o superior instalado.
-2.  Clona este repositorio.
-3.  Se recomienda encarecidamente crear y activar un entorno virtual:
+1.  **Entropy Source**: A single frame is captured from a user-selected video camera.
+2.  **Seed Generation**: A SHA-256 hash is generated from the raw image data. This serves as the master seed for all random operations.
+3.  **Mutation & Evaluation Loop**: 
+    a. A series of mutations (e.g., renaming sections, adding NOP sections with random names) are applied to the PE file, using a seed derived from the master seed.
+    b. **Early Warning Evaluation**: The mutated file is checked for structural integrity and scanned by a simple signature-based detector.
+    c. **Decision**: If the file is valid and not detected, the loop ends successfully. Otherwise, the changes are discarded, and a new attempt begins with a modified seed.
+4.  **Output and Auditing**:
+    a. The final, successful PE file is saved to the `output/` folder.
+    b. The complete log of the session is hidden within the originally captured frame using steganography, and the resulting image is saved to the `output/` folder for forensic auditing.
+
+## Installation
+
+1.  Ensure you have Python 3.10 or higher installed.
+2.  Clone this repository.
+3.  It is highly recommended to create and activate a virtual environment:
     ```sh
     python3 -m venv .venv
     source .venv/bin/activate
     ```
-4.  Instala las dependencias:
+4.  Install the dependencies:
     ```sh
     pip install -r requirements.txt
     ```
 
-## Uso
+## Usage
 
-La herramienta se maneja a través de la línea de comandos. Coloca los archivos PE que deseas mutar en la carpeta `input/`.
+The tool is operated via the command line. Place any PE files you wish to mutate into the `input/` folder.
 
-**1. Listar cámaras disponibles**
+**1. List Available Cameras**
 
-Para ver qué cámaras puedes usar como fuente de entropía:
+To see which cameras can be used as an entropy source:
 ```sh
 python3 main.py --list-cameras
 ```
 
-**2. Ejecutar el proceso de mutación**
+**2. Run the Mutation Process**
 
-Para ejecutar el flujo completo, especifica el índice de la cámara y la ruta al archivo PE.
+To run the full workflow, specify the camera index and the path to the PE file.
 ```sh
-python3 main.py --use-camera-index <ÍNDICE_CÁMARA> --pe-file input/<NOMBRE_ARCHIVO.exe>
+python3 main.py --use-camera-index <CAMERA_INDEX> --pe-file input/<FILENAME.exe>
 ```
 
-Por ejemplo:
+For example:
 ```sh
 python3 main.py --use-camera-index 0 --pe-file input/putty.exe
 ```
 
-Los archivos de salida se generarán en la carpeta `output/`.
-
+The output files will be generated in the `output/` folder.
